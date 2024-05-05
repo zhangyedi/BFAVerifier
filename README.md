@@ -1,20 +1,95 @@
 # BFAVerifier
 
-This is the official webpage for the paper "Verification of Bit-Flip Attacks against Quantized Neural Networks". In this paper, we make the following main contributions:
+BFAVerifier implementation contains two parts: DPolyR and GPUPolyR.
 
-- We propose a novel abstract domain DeepPolyR to conduct reachability analysis for neural networks with symbolic parameters soundly and efficiently;
-- We introduced the first sound, complete, and reasonably efficient bit-flip attacks verification method BFAVerifier for QNNs by cleverly combining deepPolyR and an MILP-based method;
-- We implement BFAVerifier as an end-to-end tool and conduct an extensive evaluation of various verification tasks, demonstrating its effectiveness and efficiency.
+Out-of-the-box kit is under development.
 
-## Setup
+# Installation
 
-Todo.
+## DPolyR
 
-## Running BFAVerifier on the benchmarks
+DPolyR contains Verify\_MILP and a prototype of Verify\_DeepPolyR for easier understanding.
 
-Todo.
+Please properly setup (and activate) Gurobi and install the Gurobi python package, export the necessary environment variables. 
+
+
+```bash
+cd DPolyR
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
-# This is for comment information
-python main.py --dataset mnist --arch 3blk_50 --sample_id 100 --r 2 --all_bit 8 --flip_bit 2
 
+## GPUPolyR
+
+GPUPolyR contains an accelerated version of Verify\_DeepPolyR by harnessing the power of GPU, which is based on [ELINA](https://github.com/eth-sri/ELINA/tree/master/gpupoly). 
+
+Please install cuda amd make nvcc available in the PATH.
+
+Also, please export `$LD_LIBRARY_PATH` to the cuda library path. libcublas.so.11 is required to be under the path(s) specified by the `LD_LIBRARY_PATH`
+
+Out-of-the box installation is under development. A pre-built binary executable of testGPUPoly is available. 
+
+```bash
+cd ELINA
+./configure -use-deeppoly -use-fconv -use-cuda
+cd gpupoly
+cmake .
+make -j 
 ```
+
+And you shall see `testGPUPoly` which is the excutable for the GPU version of DeepPolyR.
+
+# Usage
+
+## DPolyR
+
+### Test DPolyR
+
+Execute the following command to test your envrionment setup.
+
+```bash
+cd DPolyR
+source venv/bin/activate
+python validate.py
+```
+
+Run Verify\_MILP
+
+```bash
+python test_MILP.py --qu_bit 4 --flip_bit 1 --rad 0 --arch 5blk_100_100_100_100_100 --sample_id 432 --parameters_f
+ile ./GPU_QAT_.4.0.5blk_100_100_100_100_100.432.CNT1.TAR-1.json.res.parameters
+```
+
+Run Verify\_DeepPolyR
+
+```bash
+python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_la
+yer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1
+```
+
+Generate input for GPUPolyR
+
+```bash
+python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1 --save_test_path "../ELINA/gpupoly/info.json"
+```
+
+### Test GPUPolyR
+
+First make sure the dynamic link library is correctly set. `libcublas.so.11` is required.
+
+```bash
+export LD_LIBRARY_PATH=/home/user/spack/opt/spack/linux-ubuntu22.04-zen2/gcc-11.4.0/cuda-11.8.0-q6antbpscsfkjq7532hmicjvq5yi43z3/targets/x86_64-linux/lib
+```
+
+```bash
+./testGPUPoly ./GPU_QAT_.4.0.3blk_10_10_10.432.json binarysearch_all 100 1
+```
+
+100 targets per layer, bit-flip count 1.
+
+### Trouble Shooting
+
+`./testGPUPoly: error while loading shared libraries: libcublas.so.11: cannot open shared object file: No such file or directory`
+
+This means `libcublas.so.11` is not found in `LD_LIBRARY_PATH`, please find the path to `libcublas.so.11` and export to `LD_LIBRARY_PATH`.
