@@ -34,7 +34,7 @@ else:
     raise ValueError("Unknown dataset '{}'".format(args.dataset))
 
 x_train = x_train.reshape([-1, 28 * 28]).astype(np.float32)  # (60000,784), before reshape: (60000,28,28)
-x_test = x_test.reshape([-1, 28 * 28]).astype(np.float32)  # 直接是int8类型
+x_test = x_test.reshape([-1, 28 * 28]).astype(np.float32) 
 
 x_train /= 255
 x_test /= 255
