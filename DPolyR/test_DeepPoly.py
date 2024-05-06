@@ -192,15 +192,12 @@ else:
         
     exit(0)
 
-# load模型信息
 deepPolyNets_DNN.load_dnn(model)
 
-# 初始化 input region 给DeepPoly
 x_lb, x_ub = np.clip(x_input - args.rad, 0, 255)/255, np.clip(x_input + args.rad, 0, 255)/255
 
 input_size = 784
 
-# Ensure low is a vector
 low = np.array(x_lb, dtype=np.float32) * np.ones(input_size, dtype=np.float32)
 high = np.array(x_ub, dtype=np.float32) * np.ones(input_size, dtype=np.float32)
 
