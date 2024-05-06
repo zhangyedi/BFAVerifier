@@ -65,19 +65,18 @@ model.load_weights(weight_path)
 # initialize the encoding variables and some necessary information for each neuron
 
 
-############### TODO: load "Delta_LL", "W" ###############
+############### load "Delta_LL", "W" ###############
 
 Delta_LL_path = "benchmark/benchmark_QAT_also_quantized_bias/QAT_{}_{}_qu_{}_accuracy.txt".format(args.dataset, args.arch,
                                                                                          args.qu_bit)
 f_noIP = open(Delta_LL_path)
 Delta_LL = [float(i) for i in f_noIP.readlines()[-1].split('[')[1].split(']')[0].split(',')]
 
-############### TODO: load "W" ###############
+############### load "W" ###############
 # W is the set of all parameters that cannot solved by verify_DeepPolyR;
 # W's format: a dict
-#   key:    the weight index [i,j,k] (第i个hidden layer、第j个neuron，前面layer的第k个variable过来的parameter) or bias index [i,j,k] (第i个layer、第j个neuron，k=None)
+#   key:    the weight index [i,j,k] (i-th hidden layer, j-th neuron，k-th input variable) or bias index [i,j,k] (i-th layer, j-th neuron, k=None)
 #   value:  the set of all flipped values of the original parameter
-#   这里给了一个的例子，其中flip_bit = Q
 
 key_list = []
 if args.parameters_file is not None:
@@ -119,9 +118,7 @@ if args.parameters_file is not None:
 else:
     print("No parameters_file given. fallback to sanity check")
     l = 3
-    # 假设只证明第3个layer的所有参数
 
-    # 翻转第 l 层所有 weight
     for i in range(10):
         key_list.append(tuple([l, i, 0]))
         key_list.append(tuple([l, i, 1]))
@@ -134,7 +131,6 @@ else:
         key_list.append(tuple([l, i, 8]))
         key_list.append(tuple([l, i, 9]))
 
-    # 翻转第 l 层所有bias
     for i in range(10):
         key_list.append(tuple([l, i, None]))
 
@@ -148,23 +144,9 @@ print("key_list: ", key_list)
 print("W: ", W)
 
 
-############### TODO: load "all_lb_LL" and "all_ub_LL" ###############
-# 这里给了一个例子, 其中所有的lb都设置为-100, ub都设置为100
-# 1. 为了保证正确性，这里给到的lb 和 ub 应给一个保守的范围，即，这里的 lb 应该 比 从DeepPolyR获取得到的lb 小一些，这里的 ub 应该 比 从DeepPolyR获取得到的 ub 小一些
-#      由于我不知道 具体是多少，所以这里我暂时给了一个相对保守的 bounds，-100 ~ +100；
-# 2. 这个保守的范围越小，MILP的求解效率会更高。
-#####################################################
 all_lb_LL = [[-1000 for i in range(l.units)] for l in model.dense_layers]
 all_ub_LL = [[1000 for i in range(l.units)] for l in model.dense_layers]
 
-
-
-
-
-############################## !!!!!!!!!!!! 从这里开始实现 Function: verify_MILP ##############################
-# 以下是 MILP 的验证算法入口
-
-# 初始化，定义变量等等
 milp_encoding = QNNEncoding_MILP(model, W, Delta_LL, args, all_lb_LL, all_ub_LL)
 
 original_output = model.predict(np.expand_dims(x_test[args.sample_id], 0))[0]
@@ -172,7 +154,6 @@ original_prediction = np.argmax(original_output)
 
 print("\nThe output of ground-truth is: ", model.predict(np.expand_dims(x_test[args.sample_id], 0))[0])
 
-# 对input region、output属性、QNN进行编码，以及对整个问题进行求解
 if_Robust, counterexample, output, BFA_info = check_robustness_gurobi(
     milp_encoding, x_test[args.sample_id].flatten(), args, original_prediction)
 
