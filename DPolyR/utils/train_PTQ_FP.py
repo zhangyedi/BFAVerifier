@@ -89,7 +89,7 @@ for Q in [4, 6, 8, 10]:
         for i in range(len(blkset)):
             original_paras.append(model.layers[i].get_weights())
 
-    F_W = Q - int_bit # Q: 全部的bit数量，int_bit是为整数部分保留的bit数量，F_W是为 小数部分保留的bit数量
+    F_W = Q - int_bit 
     F_B = Q - int_bit
 
     for i in range(len(blkset)):
