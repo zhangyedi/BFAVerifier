@@ -6,23 +6,23 @@ Out-of-the-box kit is under development.
 
 # Installation
 
-## DPolyR
+## BFAVerifier
 
-DPolyR contains Verify\_MILP and a prototype of Verify\_DeepPolyR for easier understanding.
+BFAVerifier contains BFA\_MILP and a prototype of BFA\_RA for easier understanding.
 
 Please properly setup (and activate) Gurobi and install the Gurobi python package, export the necessary environment variables. 
 
 
 ```bash
-cd DPolyR
+cd BFAVerifier
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## GPUPolyR
+## GPUSymPoly
 
-GPUPolyR contains an accelerated version of Verify\_DeepPolyR by harnessing the power of GPU, which is based on [ELINA](https://github.com/eth-sri/ELINA/tree/master/gpupoly). 
+GPUSymPoly contains an accelerated version of BFA\_RA by harnessing the power of GPU, which is based on [ELINA](https://github.com/eth-sri/ELINA/tree/master/gpupoly). 
 
 Please install cuda amd make nvcc available in the PATH.
 
@@ -38,43 +38,43 @@ cmake .
 make -j 
 ```
 
-And you shall see `testGPUPoly` which is the excutable for the GPU version of DeepPolyR.
+And you shall see `testGPUPoly` which is the executable for the GPU version of SymPoly.
 
 # Usage
 
-## DPolyR
+## BFAVerifier
 
-### Test DPolyR
+### Test BFAVerifier
 
-Execute the following command to test your envrionment setup.
+Execute the following command to test your environment setup.
 
 ```bash
-cd DPolyR
+cd BFAVerifier
 source venv/bin/activate
 python validate.py
 ```
 
-Run Verify\_MILP
+Run BFA\_MILP
 
 ```bash
 python test_MILP.py --qu_bit 4 --flip_bit 1 --rad 0 --arch 5blk_100_100_100_100_100 --sample_id 432 --parameters_f
 ile ./GPU_QAT_.4.0.5blk_100_100_100_100_100.432.CNT1.TAR-1.json.res.parameters
 ```
 
-Run Verify\_DeepPolyR
+Run BFA\_RA
 
 ```bash
 python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_la
 yer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1
 ```
 
-Generate input for GPUPolyR
+Generate input for GPUSymPoly
 
 ```bash
 python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1 --save_test_path "../ELINA/gpupoly/info.json"
 ```
 
-### Test GPUPolyR
+### Test GPUSymPoly
 
 First make sure the dynamic link library is correctly set. `libcublas.so.11` is required.
 
