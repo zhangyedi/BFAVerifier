@@ -38,7 +38,7 @@ cmake .
 make -j 
 ```
 
-And you shall see `testGPUPoly` which is the executable for the GPU version of SymPoly.
+And you shall see `testGPUSymPoly` which is the executable for the GPU version of SymPoly.
 
 # Usage
 
