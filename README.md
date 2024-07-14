@@ -64,14 +64,14 @@ ile ./GPU_QAT_.4.0.5blk_100_100_100_100_100.432.CNT1.TAR-1.json.res.parameters
 Run BFA\_RA
 
 ```bash
-python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_la
+python test_SymPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_la
 yer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1
 ```
 
 Generate input for GPUSymPoly
 
 ```bash
-python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1 --save_test_path "../ELINA/gpupoly/info.json"
+python GPUSymPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1 --save_test_path "../ELINA/gpupoly/info.json"
 ```
 
 ### Test GPUSymPoly
