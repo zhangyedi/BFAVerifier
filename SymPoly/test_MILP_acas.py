@@ -110,7 +110,7 @@ if args.parameters_file is not None:
         masks = []
         W = dict()
         for i in range(1, 2 ** args.qu_bit):
-            if i>=bin(i).count("1") <= args.flip_bit:
+            if bin(i).count("1") <= args.flip_bit:
                 masks.append(i)
         for key in key_list:
             if key[2] is None:
