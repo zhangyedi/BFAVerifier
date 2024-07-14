@@ -185,11 +185,3 @@ elif if_Robust == False:
 
     # For validation
     validate_BFA(model, Delta_LL, original_output, counterexample, output, BFA_info, verbose=True)
-
-
-
-#pPolyR)> python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_
-#only_signed 1 --save_test_path "/home/winlere/ELINA/gpupoly/info.json"
-
-#python test_milp_acas.py --parameters_file ./acas.parameters  --weightPath /home/winlere/DPolyR/acasxu/GPU_ACASXUPTQ_.8.-1.nne
-# t_1_3.prop10*0.json --instance_file /home/winlere/DPolyR/acasxu/GPU_ACASXUPTQ_.8.-1.nnet_1_3.prop10*0.json
