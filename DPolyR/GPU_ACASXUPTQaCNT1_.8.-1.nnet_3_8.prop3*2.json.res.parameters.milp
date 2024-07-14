@@ -1,0 +1,127 @@
+2024-07-11 15:49:42.013261: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-07-11 15:49:42.013375: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-07-11 15:49:42.014754: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-07-11 15:49:42.021810: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-07-11 15:49:42.673583: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2024-07-11 15:49:44.598327: E external/local_xla/xla/stream_executor/cuda/cuda_driver.cc:274] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+2024-07-11 15:49:44.598394: I external/local_xla/xla/stream_executor/cuda/cuda_diagnostics.cc:129] retrieving CUDA diagnostic information for host: epyc1
+2024-07-11 15:49:44.598402: I external/local_xla/xla/stream_executor/cuda/cuda_diagnostics.cc:136] hostname: epyc1
+2024-07-11 15:49:44.598495: I external/local_xla/xla/stream_executor/cuda/cuda_diagnostics.cc:159] libcuda reported version is: 535.171.4
+2024-07-11 15:49:44.598515: I external/local_xla/xla/stream_executor/cuda/cuda_diagnostics.cc:163] kernel reported version is: 535.171.4
+2024-07-11 15:49:44.598521: I external/local_xla/xla/stream_executor/cuda/cuda_diagnostics.cc:241] kernel version seems to match DSO: 535.171.4
+/home/user/DPolyR/venv/lib/python3.10/site-packages/keras/src/initializers/initializers.py:120: UserWarning: The initializer TruncatedNormal is unseeded and being called multiple times, which will return identical values each time (even if the initializer is unseeded). Please update your code to provide a seed to the initializer, or avoid using the same initializer instance more than once.
+  warnings.warn(
+key_list:  [(0, 6, None), (0, 13, 3), (0, 13, None), (0, 15, None), (0, 15, 4), (0, 15, None), (0, 33, None), (0, 40, 2), (0, 46, None)]
+W:  {(0, 6, None): [33, 34, 36, 40, 48, 0, 96, -96], (0, 13, 3): [-19, -18, -24, -28, -4, -52, -84, 108], (0, 13, None): [33, 34, 36, 40, 48, 0, 96, -96], (0, 15, None): [33, 34, 36, 40, 48, 0, 96, -96], (0, 15, 4): [14, 13, 11, 7, 31, 47, 79, -113], (0, 33, None): [33, 34, 36, 40, 48, 0, 96, -96], (0, 40, 2): [-9, -12, -14, -2, -26, -42, -74, 118], (0, 46, None): [33, 34, 36, 40, 48, 0, 96, -96]}
+bfa_vecNum:  8
+Set parameter Threads to value 72
+
+The output of ground-truth is:  2
+
+==================================== Now we start do ilp-based solving! ====================================
+The num of vars:  678
+The num of numIntVars:  68
+The num of numBinVars:  68
+The num of Constraints:  323
+Set parameter TimeLimit to value 300
+Set parameter NonConvex to value 2
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 22.04.4 LTS")
+
+CPU model: AMD EPYC 7742 64-Core Processor, instruction set [SSE2|AVX|AVX2]
+Thread count: 128 physical cores, 128 logical processors, using up to 72 threads
+
+Optimize a model with 323 rows, 678 columns and 13477 nonzeros
+Model fingerprint: 0x60a859c3
+Model has 3 quadratic constraints
+Model has 300 general constraints
+Variable types: 610 continuous, 68 integer (68 binary)
+Coefficient statistics:
+  Matrix range     [4e-05, 1e+03]
+  QMatrix range    [4e-03, 1e+00]
+  QLMatrix range   [1e-02, 1e+00]
+  Objective range  [0e+00, 0e+00]
+  Bounds range     [1e+00, 1e+02]
+  RHS range        [9e-03, 1e+03]
+  QRHS range       [2e-01, 2e-01]
+Presolve added 484 rows and 194 columns
+Presolve time: 0.10s
+Presolved: 882 rows, 896 columns, 14889 nonzeros
+Variable types: 583 continuous, 313 integer (313 binary)
+
+Root relaxation: objective 0.000000e+00, 511 iterations, 0.02 seconds (0.04 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0    0.00000    0   21          -    0.00000      -     -    0s
+     0     0    0.00000    0   19          -    0.00000      -     -    0s
+     0     0    0.00000    0   18          -    0.00000      -     -    0s
+     0     0    0.00000    0   19          -    0.00000      -     -    0s
+     0     0    0.00000    0   20          -    0.00000      -     -    0s
+     0     0    0.00000    0   20          -    0.00000      -     -    0s
+     0     0    0.00000    0   19          -    0.00000      -     -    0s
+     0     0    0.00000    0   17          -    0.00000      -     -    0s
+     0     0    0.00000    0   16          -    0.00000      -     -    0s
+     0     0    0.00000    0   16          -    0.00000      -     -    0s
+     0     0    0.00000    0   19          -    0.00000      -     -    0s
+     0     0    0.00000    0   19          -    0.00000      -     -    1s
+     0     2    0.00000    0   19          -    0.00000      -     -    1s
+ 11683  4231    0.00000   53   18          -    0.00000      -  99.3    5s
+ 11707  4248    0.00000   22   17          -    0.00000      -   100   11s
+ 11749  4291    0.00000   47   19          -    0.00000      -   1.2   15s
+ 60445 14626 infeasible   79               -    0.00000      -  40.8   20s
+ 90309 18849    0.00000   87   18          -    0.00000      -  42.9   25s
+ 147165 27480    0.00000  104   15          -    0.00000      -  47.2   30s
+ 195712 32050    0.00000   59   19          -    0.00000      -  50.3   35s
+ 248032 36882    0.00000   66    7          -    0.00000      -  52.3   40s
+ 304389 42681 infeasible   96               -    0.00000      -  53.8   45s
+ 345625 47115    0.00000   93   25          -    0.00000      -  55.0   50s
+ 396865 48349 infeasible   82               -    0.00000      -  56.3   55s
+ 437677 49654 infeasible   84               -    0.00000      -  57.7   60s
+ 490828 49856    0.00000   93   20          -    0.00000      -  59.3   65s
+ 529949 49773 infeasible   86               -    0.00000      -  60.1   70s
+ 570567 49468    0.00000   92   20          -    0.00000      -  61.0   75s
+ 612547 51098 infeasible   75               -    0.00000      -  62.2   81s
+ 650574 50178    0.00000  111   10          -    0.00000      -  62.7   85s
+ 700453 47489 infeasible   81               -    0.00000      -  63.4   90s
+ 742656 43557    0.00000   76   14          -    0.00000      -  64.5   96s
+ 766990 41551    0.00000   66   26          -    0.00000      -  65.1  100s
+ 802713 39440 infeasible  103               -    0.00000      -  66.1  105s
+ 841252 36441 infeasible   79               -    0.00000      -  67.1  110s
+ 879354 32127    0.00000   59   20          -    0.00000      -  68.1  115s
+ 900309 28520 infeasible   97               -    0.00000      -  68.8  120s
+ 939704 21303 infeasible   83               -    0.00000      -  70.0  126s
+ 966843 13760 infeasible   89               -    0.00000      -  70.9  131s
+ 1000974  4735 infeasible   91               -    0.00000      -  72.1  136s
+
+Cutting planes:
+  Gomory: 7
+  Implied bound: 79
+  Clique: 1
+  MIR: 21
+  StrongCG: 2
+  Flow cover: 17
+  Inf proof: 3
+  Network: 1
+  RLT: 4
+  Relax-and-lift: 5
+  BQP: 1
+
+Explored 1025118 nodes (76313879 simplex iterations) in 139.48 seconds (236.81 work units)
+Thread count was 72 (of 128 available processors)
+
+Solution count 0
+
+Model is infeasible
+Best objective -, best bound -, gap -
+
+The total encoding time is: 0.19991517066955566
+
+The total solving time is: 139.5244710445404
+
+The total time is: 139.72438621520996
+BFA-tolerant Robustness Property is True.
+{'encoding_time': 0.19991517066955566, 'solving_time': 139.5244710445404, 'total_time': 139.72438621520996, 'solving_res': False}
+
+The BFA-tolerant robustness property holds w.r.t. all (1,1)-attack vectors for the input sample 0000!
