@@ -1,6 +1,6 @@
 # BFAVerifier
 
-BFAVerifier implementation contains two parts: DPolyR and GPUPolyR.
+BFAVerifier implementation contains two parts: SymPoly and GPUSymPolyR.
 
 Out-of-the-box kit is under development.
 
@@ -79,7 +79,7 @@ python test_DeepPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method basel
 First make sure the dynamic link library is correctly set. `libcublas.so.11` is required.
 
 ```bash
-export LD_LIBRARY_PATH=/home/user/spack/opt/spack/linux-ubuntu22.04-zen2/gcc-11.4.0/cuda-11.8.0-q6antbpscsfkjq7532hmicjvq5yi43z3/targets/x86_64-linux/lib
+export LD_LIBRARY_PATH=/path/to/cuda/targets/x86_64-linux/lib
 ```
 
 ```bash
