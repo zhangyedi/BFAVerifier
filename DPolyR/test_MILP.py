@@ -8,7 +8,7 @@ import sys
 import csv
 import time
 import datetime
-from gurobi_encoding_BFAVerifier import *
+from mnist_gurobi_encoding_BFAVerifier import *
 
 parser = argparse.ArgumentParser()
 
