@@ -57,12 +57,11 @@ python validate.py
 Run BFA\_MILP
 
 ```bash
-python test_MILP.py --qu_bit 4 --flip_bit 1 --rad 0 --arch 5blk_100_100_100_100_100 --sample_id 432 --parameters_f
-ile ./GPU_QAT_.4.0.5blk_100_100_100_100_100.432.CNT1.TAR-1.json.res.parameters
+python test_MILP.py --qu_bit 4 --flip_bit 1 --rad 0 --arch 5blk_100_100_100_100_100 --sample_id 432 --parameters_file ./GPU_QAT_.4.0.5blk_100_100_100_100_100.432.CNT1.TAR-1.json.res.parameters
 ```
 
 ```bash
-python test_MILP_acas.py --parameters_file GPU_ACASXUPTQaCNT1_.8.-1.nnet_3_8.prop3*2.json.res.parameters --weightPath benchmark/acasxu_h5/GPU_ACASXUPTQaCNT1_.8.-1.nnet_3_8.prop3*2.h5 --instance_file benchmark/acasxu/GPU_ACASXUPTQaCNT1_.8.-1.nnet_3_8.prop3*2.json > GPU_ACASXUPTQaCNT1_.8.-1.nnet_3_8.prop3*2.json.parameters.milp.yours 2>&1 
+python test_MILP_acas.py --parameters_file GPU_ACASXUPTQaCNT4_.8.-1.nnet_5_2.prop3*4.json.res.parameters --weightPath benchmark/acasxu_h5/GPU_ACASXUPTQaCNT4_.8.-1.nnet_5_2.prop3*4.h5 --instance_file benchmark/acasxu/GPU_ACASXUPTQaCNT4_.8.-1.nnet_5_2.prop3*4.json > GPU_ACASXUPTQaCNT4_.8.-1.nnet_5_2.prop3*4.json.parameters.milp.yours 2>&1 
 ```
 
 Run BFA\_RA
