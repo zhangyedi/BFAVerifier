@@ -67,8 +67,7 @@ python test_MILP_acas.py --parameters_file GPU_ACASXUPTQaCNT4_.8.-1.nnet_5_2.pro
 Run BFA\_RA
 
 ```bash
-python test_SymPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_la
-yer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1
+python test_SymPoly.py --bit_all 4 --QAT 1 --arch 3blk_10_10_10  --method baseline --sample_id 5 --targets_per_layer 1 --description randomtargets --bit_only_signed 1 --also_qu_bias 1
 ```
 
 Generate input for GPUSymPoly
