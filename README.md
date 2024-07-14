@@ -83,13 +83,13 @@ export LD_LIBRARY_PATH=/path/to/cuda/targets/x86_64-linux/lib
 ```
 
 ```bash
-./testGPUPoly ./GPU_QAT_.4.0.3blk_10_10_10.432.json binarysearch_all 100 1
+./testGPUSymPoly ./GPU_QAT_.4.0.3blk_10_10_10.432.json binarysearch_all 100 1
 ```
 
 100 targets per layer, bit-flip count 1.
 
 ### Trouble Shooting
 
-`./testGPUPoly: error while loading shared libraries: libcublas.so.11: cannot open shared object file: No such file or directory`
+`./testGPUSymPoly: error while loading shared libraries: libcublas.so.11: cannot open shared object file: No such file or directory`
 
 This means `libcublas.so.11` is not found in `LD_LIBRARY_PATH`, please find the path to `libcublas.so.11` and export to `LD_LIBRARY_PATH`.
