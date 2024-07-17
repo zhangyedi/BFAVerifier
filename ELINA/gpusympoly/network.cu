@@ -416,6 +416,13 @@ bool NeuralNetwork::run(const Vector<T>& input, const int label, bool sound)
 	// for(int i = 0; i < outputSize; i++) data0[i][i] = 1;
 	// auto finalB = std::make_shared<Matrix<T>>(data0);
 
+	for (int p = 1; p < layers.size(); p++){
+		layers[p]->eval(getConcreteBounds<T>(p), sound, false);
+	}
+	finalA->mvm(res, getConcreteBounds<T>(layers.size() - 1));
+	evaluateAffine<T>(res, AlwaysKeep<T>(), layers.size() - 1, false, sound, finalA);
+	if (res.isPositive())
+		return true;
 	
 
 	// finalA->mvm(res, getConcreteBounds<T>(layers.size() - 1));

@@ -215,6 +215,7 @@ int verifyDeepPolyR(const nnInfo &info, int targets_per_layer, int bit_flip_cnt,
             double RangeMinProduct = std::min({RangeMin * input_rangeMin, RangeMin * input_rangeMax, RangeMax * input_rangeMin, RangeMax * input_rangeMax});
             double RangeMaxProduct = std::max({RangeMin * input_rangeMin, RangeMin * input_rangeMax, RangeMax * input_rangeMin, RangeMax * input_rangeMax});
             add_variable_para(nn[tid], trueIndex + 1, neuronIndex, -1, RangeMinProduct + biasValue, RangeMaxProduct + biasValue, virtualNeuronNum);
+            ++queries;
             res = test_d(nn[tid], info.input_lower.data(), info.input_upper.data(), info.label, true);
             resetInfo(nn[tid], {trueIndex + 1}, {neuronIndex}, {-1}, {biasValue}, virtualNeuronNum);
             changeParaSingle(nn[tid], trueIndex, neuronIndex, weightIndex, weightValue);
@@ -224,13 +225,12 @@ int verifyDeepPolyR(const nnInfo &info, int targets_per_layer, int bit_flip_cnt,
                                 neuronIndex, weightIndex, virtualNeuronNum, flipped_samples, 
                                 0, (int)flipped_samples.size() - 1, queries, degrade);
         if(res){
-            if (OMIT_PROVED)
-                continue;
-            if(weightIndex != -1)
-                printf("(Overall) Proved %d %d %d with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, weightIndex, res, -1, -1 );
-            else
-                printf("(Overall) Proved %d %d (bias) with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, res, -1, -1);
-
+            if (!OMIT_PROVED){
+                if(weightIndex != -1)
+                    printf("(Overall) Proved %d %d %d with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, weightIndex, res, -1, -1 );
+                else
+                    printf("(Overall) Proved %d %d (bias) with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, res, -1, -1);
+            }
         }else{
             if(weightIndex != -1)
                 printf("(Overall) Fail to prove %d %d %d with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, weightIndex, res, -1, -1);
@@ -238,11 +238,14 @@ int verifyDeepPolyR(const nnInfo &info, int targets_per_layer, int bit_flip_cnt,
                 printf("(Overall) Fail to prove %d %d (bias) with all masks. Summary: %d %d %d \n", layerIndex, neuronIndex, res, -1, -1);
             all_proved_neg = 1;
         }
-        if(i % 100 == 0){
+        const int PRINT_INTERVAL = 10000;
+        if(i % PRINT_INTERVAL == 0){
             //flush stdout
-            std::cout << "Currently processed " << i << " targets, at layer " 
-            << layerIndex << " with neuron " << neuronIndex << " and weight " 
-            << weightIndex << std::endl;
+            // std::cout << "Currently processed " << i << " targets, at layer " 
+            // << layerIndex << " with neuron " << neuronIndex << " and weight " 
+            // << weightIndex << std::endl;
+            printf("Currently processed %d targets in %d queries, at layer %d with neuron %d and weight %d [PRINT_INTERVAL=%d]...\n"
+                    , i + 1, queries, layerIndex, neuronIndex, weightIndex,PRINT_INTERVAL);
         }
     }
     for(int i = 0; i < OMP_NUM_THREADS; i++){
