@@ -1,5 +1,0 @@
-Verification Result: False
-BFA-tolerant Robustness Property is False.
-Encoding Time: 0.4610726833343506
-Solving Time: 52.035285234451294
-Total Time: 52.496357917785645
