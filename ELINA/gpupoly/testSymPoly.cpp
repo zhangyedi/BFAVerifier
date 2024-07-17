@@ -172,7 +172,7 @@ int verifyDeepPolyR(const nnInfo &info, int targets_per_layer, int bit_flip_cnt,
         return 1;
     }
     printf("!DEBUG: Infer once with no flips. Proved\n");
-    printf("!DEBUG: LOG OPTION: OMIT PROVED. PRINT FAILED.\n");
+    printf("!DEBUG: LOG OPTION: OMIT PROVED PARA\n");
     const int OMIT_PROVED = 1;
     for(int layerIndex = 1; layerIndex < (int)info.weights.size(); ++layerIndex){
         //add weights
