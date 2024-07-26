@@ -90,7 +90,7 @@ class QNNEncoding_MILP:
             if (i == len(deepModel.dense_layers) - 1):
                 ifLast = True
 
-            # 为每个 non-input layer 构造 milp 变量
+
             self.encoded_dense_layer.append(
                 LayerEncoding_MILP(
                     layer_size=l.units,

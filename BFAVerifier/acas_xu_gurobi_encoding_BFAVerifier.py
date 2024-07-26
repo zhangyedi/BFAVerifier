@@ -350,7 +350,7 @@ class QNNEncoding_MILP:
     # compute back the attack vectors
     def compute_attack_vector(self, binaryVars):
 
-        # 以防binaryVars返回0.99999999
+
         assert np.round(np.sum(binaryVars)) == 1
         binaryVars = [np.round(ele) for ele in binaryVars]
 
