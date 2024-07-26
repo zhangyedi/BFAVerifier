@@ -72,12 +72,12 @@ class QNNEncoding_MILP:
         self.encoded_dense_layer = []
         self.allBinVar = []
         self.allBinVar_key = []
-        # 初始化 Gurobi model
+
         self.gp_model = gp.Model("qnn_ilp_verifier")
         # self.gp_model.Params.IntFeasTol = 1e-6
-        self.gp_model.setParam(GRB.Param.Threads, 30)  # 默认Gurobi的线程数
+        self.gp_model.setParam(GRB.Param.Threads, 30)  
 
-        # 运行参数
+
         self._stats = {
             "encoding_time": 0,
             "solving_time": 0,
@@ -156,7 +156,7 @@ class QNNEncoding_MILP:
 
             keyList = list(filter(lambda x: x[0] == layer_index and x[1] == out_index, all_keys))
 
-            # TODO: 优化encoding，用矩阵的方式加速编码
+
             # encode modified parameter's effect on affine function
             for key in keyList:
 
@@ -302,7 +302,7 @@ class QNNEncoding_MILP:
 
         # sumOfRealFlip = self.sumOfRealFlip.X
 
-        # Todo: 定位vulnerable parameter's value
+
         # weight_BFA_values = np.array()
         binaryVars = np.array(
             [var.X for var in self.allBinVar], dtype=np.float32
@@ -316,7 +316,7 @@ class QNNEncoding_MILP:
     # compute back the attack vectors
     def compute_attack_vector(self, binaryVars):
 
-        # 以防binaryVars返回0.99999999
+
         assert np.round(np.sum(binaryVars)) == 1
         binaryVars = [np.round(ele) for ele in binaryVars]
 
@@ -327,7 +327,7 @@ class QNNEncoding_MILP:
 
         key = self.allBinVar_key[key_index]
 
-        # 返回对应的weight的位置，以及翻转后的value
+
         return [key, self.W_dict[key][item_index]]
 
 
@@ -340,7 +340,7 @@ class LayerEncoding_MILP:
         self.if_last = if_last
         self.if_input = if_input
 
-        # TODO: 这里应通过DeepPolyR获取到相应的neuron的上下界
+
         if signed_output:
             self.gp_DNN_vars = [
                 gp_model.addVar(lb=lb_LL[i], ub=ub_LL[i], vtype=GRB.CONTINUOUS) for i in range(layer_size)  # [-100,100]
@@ -368,7 +368,7 @@ def check_robustness_gurobi(milp_encoding, x, args, prediction):
     # Step1: encode input region I^r_u
     milp_encoding.assert_input_box(x, args.rad)
 
-    ####### 以下内容为 Cbeck Robustness Start: if not robust for original QNN, then exit
+    ####### Cbeck Robustness Start: if not robust for original QNN, then exit
 
     milp_encoding.deepPolyNets_DNN.deeppoly()
     otherMax = 0

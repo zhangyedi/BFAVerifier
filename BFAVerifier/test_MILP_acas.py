@@ -139,11 +139,6 @@ print("W: ", W)
 
 
 ############### TODO: load "all_lb_LL" and "all_ub_LL" ###############
-# 这里给了一个例子, 其中所有的lb都设置为-100, ub都设置为100
-# 1. 为了保证正确性，这里给到的lb 和 ub 应给一个保守的范围，即，这里的 lb 应该 比 从DeepPolyR获取得到的lb 小一些，这里的 ub 应该 比 从DeepPolyR获取得到的 ub 小一些
-#      由于我不知道 具体是多少，所以这里我暂时给了一个相对保守的 bounds，-100 ~ +100；
-# 2. 这个保守的范围越小，MILP的求解效率会更高。
-#####################################################
 all_lb_LL = [[-100 for i in range(l.units)] for l in model.dense_layers]
 all_ub_LL = [[100 for i in range(l.units)] for l in model.dense_layers]
 

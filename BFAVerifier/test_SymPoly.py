@@ -105,7 +105,7 @@ print("\nModel prediction is: ", model_predict)
 
 ######################## DeepPoly Start #########################
 
-# DeepPoly 初始化
+
 if args.bit_all == None:
     deepPolyNets_DNN = DP_DNN_network(True)
 else:
