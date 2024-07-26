@@ -146,10 +146,10 @@ all_ub_LL = [[100 for i in range(l.units)] for l in model.dense_layers]
 
 
 
-############################## !!!!!!!!!!!! 从这里开始实现 Function: verify_MILP ##############################
-# 以下是 MILP 的验证算法入口
+############################## !!!!!!!!!!! Function: verify_MILP ##############################
 
-# 初始化，定义变量等等
+
+
 milp_encoding = QNNEncoding_MILP(model, W, Delta_LL, args, all_lb_LL, all_ub_LL)
 
 # original_output = model.predict(np.expand_dims(x_test[args.sample_id], 0))[0]
@@ -162,7 +162,7 @@ milp_encoding = QNNEncoding_MILP(model, W, Delta_LL, args, all_lb_LL, all_ub_LL)
 
 print("\nThe output of ground-truth is: ", original_prediction)
 
-# 对input region、output属性、QNN进行编码，以及对整个问题进行求解
+
 if_Robust, counterexample, output, BFA_info = check_robustness_gurobi(
     milp_encoding, args, original_prediction, x_lb, x_ub)
 
