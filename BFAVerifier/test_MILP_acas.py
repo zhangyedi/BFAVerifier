@@ -77,20 +77,6 @@ with open(instance_path, 'r') as f:
     original_output[original_prediction] = 114514
     
 
-############### TODO: load "Delta_LL", "W" ###############
-
-# Delta_LL_path = "benchmark/benchmark_QAT_also_quantized_bias/QAT_{}_{}_qu_{}_accuracy.txt".format(args.dataset, args.arch,
-#                                                                                          args.qu_bit)
-# f_noIP = open(Delta_LL_path)
-# Delta_LL = [float(i) for i in f_noIP.readlines()[-1].split('[')[1].split(']')[0].split(',')]
-# Delta_LL = [0.008536118222033883, 0.003398927177969865, 0.0028792483600105826, 0.0030623686125897985, 0.003627643341154564, 0.0033347747457309032, 0.005637749442904014]
-############### TODO: load "W" ###############
-# W is the set of all parameters that cannot solved by verify_DeepPolyR;
-# W's format: a dict
-#   key:    the weight index [i,j,k] (第i个hidden layer、第j个neuron，前面layer的第k个variable过来的parameter) or bias index [i,j,k] (第i个layer、第j个neuron，k=None)
-#   value:  the set of all flipped values of the original parameter
-#   这里给了一个的例子，其中flip_bit = Q
-
 key_list = []
 if args.parameters_file is not None:
     with open(args.parameters_file, 'r') as f:
