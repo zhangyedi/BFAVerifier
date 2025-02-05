@@ -134,12 +134,26 @@ def int_get_min_max(num_bits, frac_bits):
 #     else:
 #         return tf.nn.relu(x)
 
-def deep_op_activation(x, if_output):
+def deep_op_activation_relu(x, if_output):
     if if_output:
         return x
     else:
         # return tf.nn.relu(x)
         return tf.cast(tf.nn.relu(x), tf.float32)
+    
+def deep_op_activation_sigmoid(x, if_output):
+    if if_output:
+        return x
+    else:
+        # return tf.nn.relu(x)
+        return tf.cast(tf.nn.sigmoid(x), tf.float32)
+    
+def deep_op_activation_tanh(x, if_output):
+    if if_output:
+        return x
+    else:
+        # return tf.nn.relu(x)
+        return tf.cast(tf.nn.tanh(x), tf.float32)
 
 def fake_quant_op_activation(x, quantization_config, signed_output, if_output):
     if if_output:

@@ -30,17 +30,20 @@ if args.dataset == "fashion-mnist":
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
 elif args.dataset == "mnist":
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+elif args.dataset == 'svhn':
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.svhn.load_data()
 else:
     raise ValueError("Unknown dataset '{}'".format(args.dataset))
 
-x_train = x_train.reshape([-1, 28 * 28]).astype(np.float32)  # (60000,784), before reshape: (60000,28,28)
-x_test = x_test.reshape([-1, 28 * 28]).astype(np.float32) 
+effective_dim = np.prod(x_train[0].shape[1:])
+x_train = x_train.reshape(x_train.shape[0], effective_dim)
+x_test = x_test.reshape(x_test.shape[0], effective_dim)
 
 x_train /= 255
 x_test /= 255
 
 model = Sequential()
-in_input_dim = 784
+in_input_dim = effective_dim
 
 index = 0
 for i in blkset:

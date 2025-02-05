@@ -11,6 +11,7 @@ class DeepModel(tf.keras.Model):
     def __init__(
             self,
             layers,
+            activation="relu",
             dropout_rate=0.0,
             last_layer_signed=False,
     ):
@@ -27,7 +28,8 @@ class DeepModel(tf.keras.Model):
                     DeepDense(
                         output_dim=l,
                         signed_output=signed,
-                        if_output_layer=last_layer
+                        activation=activation,
+                        if_output_layer=last_layer,
                     )
                 )
             else:
@@ -106,6 +108,7 @@ class DeepDense(DeepLayer):
     def __init__(
             self,
             output_dim,
+            activation="relu",
             signed_output=False,
             if_output_layer=False,
             kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.2),
@@ -113,7 +116,7 @@ class DeepDense(DeepLayer):
     ):
         self.units = output_dim
         self.kernel_initializer = kernel_initializer
-
+        self.activation = activation
         self.signed_output = signed_output
         self.if_output_layer = if_output_layer
         super(DeepDense, self).__init__(**kwargs)
@@ -124,12 +127,14 @@ class DeepDense(DeepLayer):
             shape=(int(input_shape[1]), self.units),
             initializer=self.kernel_initializer,
             trainable=True,
+            # kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
         )
         self.bias = self.add_weight(
             name="bias",
             shape=[self.units],
             initializer=tf.keras.initializers.Constant(0.25),
             trainable=True,
+            # kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
         )
 
         super(DeepDense, self).build(
@@ -138,5 +143,12 @@ class DeepDense(DeepLayer):
 
     def call(self, x, training=None):
         y = tf.matmul(x, self.kernel) + self.bias
-        y = deep_op_activation(y, self.if_output_layer)
+        if self.activation == "relu":
+            y = deep_op_activation_relu(y, self.if_output_layer)
+        elif self.activation == "sigmoid":
+            y = deep_op_activation_sigmoid(y, self.if_output_layer)
+        elif self.activation == "tanh":
+            y = deep_op_activation_tanh(y, self.if_output_layer)
+        else:
+            raise ValueError("Unexpected activation function {}".format(self.activation))
         return y

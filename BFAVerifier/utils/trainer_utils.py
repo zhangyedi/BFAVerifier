@@ -65,7 +65,7 @@ class QuantizedModel(tf.keras.Model):
         )  # Be sure to call this at the end
 
     def preprocess(self, x):
-        print(x)  
+        print(x)  # 0~255
         x = qu.downscale_op_input(x, self.quantization_config)
         print(x)  # x*(2^Q-1/2^Q)
         x = qu.fake_quant_op_input(x, self.quantization_config)

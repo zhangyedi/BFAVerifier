@@ -447,13 +447,13 @@ then
     searchbin "cmake"
     if test $? -eq 1
     then
-        echo "Configuring GPUSymPoly (using CMake)"
-        cd gpysumpoly
+        echo "Configuring GPUPoly (using CMake)"
+        cd gpupoly
         cmake -DCMAKE_INSTALL_PREFIX:PATH=$elina_prefix .
-        if test $? -ne 0; then echo "Failed to configure GPUSymPoly"; has_cuda=0; fi
+        if test $? -ne 0; then echo "Failed to configure GPUPoly"; has_cuda=0; fi
         cd ..
     else
-        echo "GPUSymPoly requires CMake."
+        echo "GPUPoly requires CMake."
         has_cuda=0
     fi
 fi

@@ -22,12 +22,20 @@ parser.add_argument("--bit_int", type=int, default=2)
 parser.add_argument("--bit_frac", type=int, default=2)
 parser.add_argument("--bit_only_signed", type=bool, default=False, help="Only consider signed-bit flip. This will override the method to baseline")
 parser.add_argument("--QAT", type=bool, default=False) # Quantization Aware Training
+parser.add_argument("--PTQ", type=bool, default=False) # Post Training Quantization
+parser.add_argument("--USE_PREQUNT", type=bool, default=False) # Use PreQuantization
 parser.add_argument("--also_qu_bias", type=bool, default=None)
 parser.add_argument("--targets_per_layer", type=int, default=None)
 parser.add_argument("--method", choices=["baseline","binarysearch"],type=str,default="baseline")
 parser.add_argument("--perf", type=str, default="")
 parser.add_argument("--description", type=str, default="")
 parser.add_argument("--save_test_path", type=str, default="", help = "save the benchmark infomation for GPU DeepPolyR. Includes layerSizes, weights, bias, inputs and label")
+parser.add_argument("--test_deeppoly_only", default=False, action='store_true', help = "only test deeppoly, output result")
+parser.add_argument("--test_sympoly_only", default=False, action='store_true', help = "only test sympoly, output result")
+parser.add_argument("--save_union_intervals", default=False, action='store_true', help = "save the union of intervals")
+parser.add_argument("--bit_flip_cnt", type=int, default=1, help="number of bit-flips in the attack")
+parser.add_argument("--other_activation", type=str, default="", help="use other network with other activation function")
+parser.add_argument("--random_soundness_test", default=False, action='store_true', help="random soundness test")
 
 args = parser.parse_args()
 
@@ -56,16 +64,25 @@ assert int(numBlk) == len(blkset) - 1
 model = DeepModel(
     blkset,
     last_layer_signed=True,
+    activation="relu" if args.other_activation == "" else args.other_activation.lower(),
 )
 DeltaWs = None
 if args.bit_all != None:
-    if args.QAT:
-        if args.also_qu_bias:
-            weight_path = f"benchmark/benchmark_QAT_also_quantized_bias/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
-            info_path = f"benchmark/benchmark_QAT_also_quantized_bias/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}_accuracy.txt"
+    if (args.QAT or args.PTQ ) and not args.USE_PREQUNT:
+        if args.other_activation == "":
+            if args.QAT and args.also_qu_bias:
+                weight_path = f"benchmark/benchmark_QAT_also_quantized_bias/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
+                info_path = f"benchmark/benchmark_QAT_also_quantized_bias/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}_accuracy.txt"
+            elif args.QAT and not args.also_qu_bias:
+                weight_path = f"benchmark/benchmark_QAT/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
+                info_path = f"benchmark/benchmark_QAT/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}_accuracy.txt"
+            elif args.PTQ:
+                weight_path = f"benchmark/benchmark_PTQ/PTQ_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
+                info_path = f"benchmark/benchmark_PTQ/PTQ_{args.dataset}_{args.arch}_qu_{args.bit_all}.txt"
         else:
-            weight_path = f"benchmark/benchmark_QAT/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
-            info_path = f"benchmark/benchmark_QAT/QAT_{args.dataset}_{args.arch}_qu_{args.bit_all}_accuracy.txt"
+            weight_path = f"benchmark/benchmark_PTQ_other_act/PTQ{args.other_activation}_{args.dataset}_{args.arch}_qu_{args.bit_all}.h5"
+            info_path = f"benchmark/benchmark_PTQ_other_act/PTQ{args.other_activation}_{args.dataset}_{args.arch}_qu_{args.bit_all}.txt"
+
         with open(info_path, "r") as f:
             # Loss: 0.09997887909412384
             # sparse_categorical_accuracy: 0.9713000059127808
@@ -78,13 +95,19 @@ if args.bit_all != None:
                     DeltaWs = list(map(float, line.split(":")[1].strip().strip("[").strip("]").split(",")))
                     print(f"scaling_factor_ll found = {DeltaWs}") 
                     break
-    else:    
-        weight_path = "benchmark/{}-qnn/{}_{}_Q={}_weight.h5".format(args.dataset, args.dataset, args.arch, args.bit_all)
-    if DeltaWs is None:
+    else:
+        if args.PTQ and args.USE_PREQUNT:
+            # load the original weight in PTQ
+            weight_path = f"benchmark/benchmark_PTQ/PTQ_{args.dataset}_{args.arch}_qu_{args.bit_all}_DNN.h5"
+        else:
+            weight_path = "benchmark/{}-qnn/{}_{}_Q={}_weight.h5".format(args.dataset, args.dataset, args.arch, args.bit_all)
+    if DeltaWs is None or len(DeltaWs) == 0:
         print(f"no scaling_factor_ll found, use default value {1.0/(2**args.bit_frac)}")
-        DeltaWs = [1.0/(2**args.bit_frac)] * len(arch)
+        DeltaWs = [1.0/(2**args.bit_frac)] * (len(arch) - 1)
 else:
     weight_path = "benchmark/{}/{}_{}_weight.h5".format(args.dataset, args.dataset, args.arch)
+
+print(f"weight_path={weight_path}")
 
 model.compile(  # some configurations during training
     optimizer=tf.keras.optimizers.Adam(0.0001),
@@ -93,7 +116,7 @@ model.compile(  # some configurations during training
 )
 
 model.build((None, 28 * 28))  # force weight allocation, print a lot of information
-
+model(x_train[:1])  # input: 0~1
 model.load_weights(weight_path)  # input: 0~255
 
 x_input = x_test[args.sample_id]
@@ -105,7 +128,6 @@ print("\nModel prediction is: ", model_predict)
 
 ######################## DeepPoly Start #########################
 
-
 if args.bit_all == None:
     deepPolyNets_DNN = DP_DNN_network(True)
 else:
@@ -115,8 +137,24 @@ else:
 
     deepPolyNets_QNN = DP_QNN_network(bit_all,DeltaWs,True)
     deepPolyNets_QNN.load_dnn(model)
+    if args.other_activation != "":
+        deepPolyNets_QNN.change_activation(args.other_activation.lower())
+
     
     x_lb, x_ub = np.clip(x_input - args.rad, 0, 255)/255, np.clip(x_input + args.rad, 0, 255)/255
+    # print("x_lb=", x_lb)
+    if args.test_deeppoly_only:
+        test_deeppoly(deepPolyNets_QNN, x_lb, x_ub, model_predict)
+    
+    if args.test_sympoly_only:
+        test_sympoly(deepPolyNets_QNN, x_lb, x_ub, model_predict, args.bit_all, args.bit_flip_cnt, args.save_union_intervals)
+    
+    if args.random_soundness_test:
+        test_random_soundness(deepPolyNets_QNN, model=model, x_lb=x_lb, x_ub=x_ub, model_predict=model_predict, args=args)
+
+    if args.test_sympoly_only or args.test_deeppoly_only or args.random_soundness_test:
+        exit(0)
+        
     spec = specification_mnist_linf(x_input, args.rad, model_predict)
     if args.bit_only_signed:
         args.method = "baseline_only_signed"
@@ -129,7 +167,7 @@ else:
             algo = BFA_algo_baseline_targets_per_layer(spec,deepPolyNets_QNN, args.targets_per_layer ,allowSigned)
         else:
             print("only_last_layer")
-            algo = BFA_algo_baseline(spec,deepPolyNets_QNN,args.bit_only_signed)
+            # algo = BFA_algo_baseline(spec,deepPolyNets_QNN,args.bit_only_signed)
     else:
         print("Binary")
         if args.targets_per_layer:
@@ -149,6 +187,7 @@ else:
         jdata["input_lower"] = x_lb.tolist()
         jdata["input_id"] = args.sample_id
         jdata["label"] = int(model_predict)
+        jdata["activation_type"] = args.other_activation.lower() if args.other_activation != "" else "relu" 
         with open(args.save_test_path, "w") as f:
             json.dump(jdata, f)
         print(f"Save the benchmark information to {args.save_test_path}...")
@@ -193,11 +232,15 @@ else:
     exit(0)
 
 deepPolyNets_DNN.load_dnn(model)
+if args.other_activation != "":
+    deepPolyNets_DNN.set_activation(args.other_activation.lower())
+
 
 x_lb, x_ub = np.clip(x_input - args.rad, 0, 255)/255, np.clip(x_input + args.rad, 0, 255)/255
 
 input_size = 784
 
+# Ensure low is a vector
 low = np.array(x_lb, dtype=np.float32) * np.ones(input_size, dtype=np.float32)
 high = np.array(x_ub, dtype=np.float32) * np.ones(input_size, dtype=np.float32)
 

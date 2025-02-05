@@ -3,7 +3,146 @@ import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import numpy as np
 from copy import deepcopy
+import torch
 
+def weighted_input_relax(wl, wu, xl, xu):
+    """Compute the two-line abstract that bounds 
+            k1 * x + b1 <= wx <= k2 * x + b2 
+    where w and x are intervals that might cross the origin
+    """
+    assert wl <= wu and xl <= xu, "wl <= wu and xl <= xu"
+    if xl == xu:
+        if xl >= 0:
+            return (wl, 0), (wu, 0)
+        elif xu <= 0:
+            return (wu, 0), (wl, 0)
+    # A --- B 
+    # |     |
+    # C --- D
+    A = xl, max(xl*wl, xl*wu)
+    B = xu, max(xu*wl, xu*wu)
+    C = xl, min(xl*wl, xl*wu)
+    D = xu, min(xu*wl, xu*wu)
+    def getLine(ST, ED):
+        k = (ED[1] - ST[1]) / (ED[0] - ST[0])
+        b = ST[1] - k * ST[0]
+        return k, b
+    k1, b1 = getLine(C, D)
+    k2, b2 = getLine(A, B)
+    return (k1, b1), (k2, b2)
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def d_sigmoid(z):
+    y = sigmoid(z)
+    return y * (1 - y)
+
+def slope_point_repre(k, x, y):
+    """ return (k,b) that y = kx + b """
+    return k, y - k * x
+
+def sigmoid_abstract(wl, wu, xl, xu):
+    """ compute the two-line abstract that bounds 
+            k1 * x + b1 <= sigmoid(wx) <= k2 * x + b2 
+    where w and x are intervals that might cross the origin
+    """
+    assert wl <= wu and xl <= xu, "must wl <= wu and xl <= xu"
+    assert wl >= 0 or wu <= 0, "must wl >= 0 or wu <= 0 (ie. do not cross origin)"
+    
+    if xl == xu:
+        x = xl
+        return (0, wl * sigmoid(x)), (0, wu * sigmoid(x))
+
+    floating_point_safeguard = 1e-5
+    xl -= floating_point_safeguard
+    xu += floating_point_safeguard
+    
+    gl,gu = sigmoid(xl), sigmoid(xu)
+    gl_prime, gu_prime = d_sigmoid(xl), d_sigmoid(xu)
+    kappa = (gu - gl) / (xu - xl)
+    kappa_prime = min(gl_prime, gu_prime)
+
+    if xl >= 0:
+        if wl >= 0:
+            return slope_point_repre(k=wl*kappa, x=xl, y=wl*gl), \
+                   slope_point_repre(k=wu*kappa_prime, x=xu, y=wu*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xu, y=wl*gu), \
+                   slope_point_repre(k=wu*kappa, x=xl, y=wu*gl)
+    elif xu <= 0:
+        if wl >= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xl, y=wl*gl), \
+                   slope_point_repre(k=wu*kappa, x=xu, y=wu*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wl*kappa, x=xu, y=wl*gu), \
+                   slope_point_repre(k=wu*kappa_prime, x=xl, y=wu*gl)
+    else: # xl < 0 < xu
+        if wl >= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xl, y=wl*gl), \
+                   slope_point_repre(k=wu*kappa_prime, x=xu, y=wu*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xu, y=wl*gu), \
+                   slope_point_repre(k=wu*kappa_prime, x=xl, y=wu*gl)
+
+    raise NotImplementedError("Implemented but impossible branch case!")
+
+def tanh(z):
+    e_x = np.exp(z)
+    e_nx = np.exp(-z)
+    return (e_x - e_nx) / (e_x + e_nx)
+
+def d_tanh(z):
+    y = tanh(z)
+    return 1 - y ** 2
+
+def tanh_abstract(wl, wu, xl, xu):
+    """ compute the two-line abstract that bounds
+            k1 * x + b1 <= tanh(wx) <= k2 * x + b2
+        where w and x are intervals that might cross the origin
+    """
+    assert wl <= wu and xl <= xu, "must wl <= wu and xl <= xu"
+    assert wl >= 0 or wu <= 0, "must wl >= 0 or wu <= 0 (ie. do not cross origin)"
+    
+    if xl == xu:
+        x = xl
+        val = tanh(x)
+        comb1, comb2 = wl * val, wu * val
+        
+        return (0, min(comb1, comb2)), (0, max(comb1, comb2))
+
+    floating_point_safeguard = 1e-5
+    xl -= floating_point_safeguard
+    xu += floating_point_safeguard
+    
+    gl,gu = tanh(xl), tanh(xu)
+    gl_prime, gu_prime = d_tanh(xl), d_tanh(xu)
+    kappa = (gu - gl) / (xu - xl)
+    kappa_prime = min(gl_prime, gu_prime)
+    
+    if xl >= 0:
+        if wl >= 0:
+            return slope_point_repre(k=wl*kappa, x=xl, y=wl*gl), \
+                   slope_point_repre(k=wu*kappa_prime, x=xu, y=wu*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xu, y=wl*gu), \
+                   slope_point_repre(k=wu*kappa, x=xl, y=wu*gl)
+    elif xu <= 0:
+        if wl >= 0:
+            return slope_point_repre(k=wu*kappa_prime, x=xl, y=wu*gl), \
+                   slope_point_repre(k=wl*kappa, x=xu, y=wl*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wu*kappa, x=xu, y=wu*gu), \
+                   slope_point_repre(k=wl*kappa_prime, x=xl, y=wl*gl)
+    else: # xl < 0 < xu
+        if wl >= 0:
+            return slope_point_repre(k=wl*kappa_prime, x=xl, y=wu*gl), \
+                   slope_point_repre(k=wl*kappa_prime, x=xu, y=wu*gu)
+        elif wu <= 0:
+            return slope_point_repre(k=wu*kappa_prime, x=xu, y=wl*gu), \
+                   slope_point_repre(k=wu*kappa_prime, x=xl, y=wl*gl)
+    
+    raise NotImplementedError("Implemented but impossible branch case!")
 
 class DP_DNN_neuron(object):
 
@@ -15,9 +154,11 @@ class DP_DNN_neuron(object):
         self.concrete_lower = None
         self.concrete_lower_noClip = None
         self.concrete_upper = None
-        self.concrete_upper_noClip = None
+        self.concrete_upper_noClip = NotImplementedError
         self.concrete_highest_lower = None
         self.concrete_lowest_upper = None
+        self.historical_concrete_lowest_lower = None
+        self.historical_concrete_highest_upper = None
         self.weight = None
         self.weight_deepcopy = None
         self.bias = None
@@ -28,8 +169,6 @@ class DP_DNN_neuron(object):
         self.variable_weight_id = None # this activation is relu(w * x[id]) where w \in [rangeMin, rangeMax]
         self.variable_weight_min = None
         self.variable_weight_max = None
-        # self.variable_weight_min_abs = None
-        # self.variable_weight_max_abs = None
         self.actMode = 0 # 1: activated ; 2: deactivated; 3: lb+ub>=0; 4: lb+ub<0
 
     def clear(self):
@@ -44,6 +183,8 @@ class DP_DNN_neuron(object):
         self.variable_weight_max = None
         self.variable_weight_min_abs = None
         self.variable_weight_max_abs = None
+        self.historical_concrete_lowest_lower = None
+        self.historical_concrete_highest_upper = None
     
     def clear_weight_range(self,hintWeightIndex = None):
         if self.variable_weight:
@@ -58,12 +199,27 @@ class DP_DNN_neuron(object):
             self.variable_weight_min_abs = None
             self.variable_weight_max_abs = None
 
-
+    def print_detail(cur_neuron, i, j):
+            print("Layer, neuron: ", i + 1, j)
+            print("Algebra Lower: ", cur_neuron.algebra_lower)
+            print("Algebra Upper: ", cur_neuron.algebra_upper)
+            print("Concrete Lower: ", cur_neuron.concrete_lower)
+            print("Concrete Upper: ", cur_neuron.concrete_upper)
+            print("Act Mode: ", ["affine mode",
+                                    "pre_neuron.concrete_highest_lower >= 0", 
+                                    "pre_neuron.concrete_lowest_upper < 0",
+                                    "pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper < 0",
+                                    "pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper >= 0"][cur_neuron.actMode]) 
+            print("Concrete Algebra Lower: ", cur_neuron.concrete_algebra_lower)
+            print("Concrete Algebra Upper: ", cur_neuron.concrete_algebra_upper)
+            print('-----')
 
 class DP_DNN_layer(object):
     INPUT_LAYER = 0
     AFFINE_LAYER = 1
     RELU_LAYER = 2
+    SIGMOID_LAYER = 3
+    TANH_LAYER = 4
 
     def __init__(self):
         self.size = None
@@ -139,12 +295,12 @@ class DP_DNN_network(object):
 
         self.weight_variables = {}
     
-    def deeppoly(self):
+    def deeppoly(self, VERBOSE = False):
         
         def reluw_abstract(cur_neuron:DP_DNN_neuron):
             assert cur_neuron.weight == None #kind of assersion of a relu layer
             if cur_neuron.variable_weight:
-                if cur_neuron.variable_weight_min >= 0:
+                if cur_neuron.variable_weight_min >= 0: 
                     if cur_neuron.concrete_lower is not None:
                         cur_neuron.concrete_lower, cur_neuron.concrete_upper = cur_neuron.variable_weight_min * cur_neuron.concrete_lower,cur_neuron.variable_weight_max * cur_neuron.concrete_upper
                     if cur_neuron.concrete_highest_lower is not None:
@@ -160,7 +316,7 @@ class DP_DNN_network(object):
                     cur_neuron.algebra_lower, cur_neuron.algebra_upper = cur_neuron.variable_weight_min * cur_neuron.algebra_upper, cur_neuron.variable_weight_max * cur_neuron.algebra_lower
                     if cur_neuron.concrete_algebra_lower is not None:
                         cur_neuron.concrete_algebra_lower, cur_neuron.concrete_algebra_upper = cur_neuron.concrete_algebra_upper * cur_neuron.variable_weight_min, cur_neuron.concrete_algebra_lower * cur_neuron.variable_weight_max
-                elif cur_neuron.variable_weight_min < 0 and 0 < cur_neuron.variable_weight_max:
+                elif cur_neuron.variable_weight_min < 0 and 0 < cur_neuron.variable_weight_max: 
                     if cur_neuron.concrete_lower is not None:
                         cur_neuron.concrete_lower, cur_neuron.concrete_upper = cur_neuron.variable_weight_min * cur_neuron.concrete_upper, cur_neuron.variable_weight_max * cur_neuron.concrete_upper
                     if cur_neuron.concrete_highest_lower is not None:
@@ -168,10 +324,53 @@ class DP_DNN_network(object):
                     cur_neuron.algebra_lower, cur_neuron.algebra_upper = cur_neuron.variable_weight_min * cur_neuron.algebra_upper, cur_neuron.variable_weight_max * cur_neuron.algebra_upper
                     if cur_neuron.concrete_algebra_lower is not None:
                         cur_neuron.concrete_algebra_lower, cur_neuron.concrete_algebra_upper = cur_neuron.concrete_algebra_upper * cur_neuron.variable_weight_min, cur_neuron.concrete_algebra_upper * cur_neuron.variable_weight_max
-                    # raise NotImplementedError("Implemented but not validated!")
+                if VERBOSE:
+                    cur_neuron.print_detail(-1, "ReluW Abstract")
+        def pre_gpu(cur_neuron, i):
+            if i == 0:
+                cur_neuron.concrete_algebra_lower = deepcopy(cur_neuron.algebra_lower)
+                cur_neuron.concrete_algebra_upper = deepcopy(cur_neuron.algebra_upper)
+            lower_bound = torch.tensor(deepcopy(cur_neuron.algebra_lower))
+            upper_bound = torch.tensor(deepcopy(cur_neuron.algebra_upper))
+            for k in range(i + 1)[::-1]:
+                tmp_lower = torch.zeros(len(self.layers[k].neurons[0].algebra_lower)).cuda(non_blocking=True)
+                tmp_upper = torch.zeros(len(self.layers[k].neurons[0].algebra_lower)).cuda(non_blocking=True)
+                assert (self.layers[k].size + 1 == len(lower_bound))
+                assert (self.layers[k].size + 1 == len(upper_bound))
+                for p in range(self.layers[k].size):
+                    if lower_bound[p] >= 0:
+                        tmp_lower += lower_bound[p] * torch.tensor(self.layers[k].neurons[p].algebra_lower).cuda()
+                    else:
+                        tmp_lower += lower_bound[p] * torch.tensor(self.layers[k].neurons[p].algebra_upper).cuda()
 
+                    if upper_bound[p] >= 0:
+                        tmp_upper += upper_bound[p] * torch.tensor(self.layers[k].neurons[p].algebra_upper).cuda()
+                    else:
+                        tmp_upper += upper_bound[p] * torch.tensor(self.layers[k].neurons[p].algebra_lower).cuda()
+                tmp_lower[-1] += lower_bound[-1]
+                tmp_upper[-1] += upper_bound[-1]
+                lower_bound = tmp_lower.clone()
+                upper_bound = tmp_upper.clone()
+                if k == 1:
+                    cur_neuron.concrete_algebra_upper = deepcopy(upper_bound.cpu().numpy())
+                    cur_neuron.concrete_algebra_lower = deepcopy(lower_bound.cpu().numpy())
+            assert (len(upper_bound.cpu().numpy()) == 1)
+            assert (len(lower_bound.cpu().numpy()) == 1)
+            cur_neuron.concrete_lower = lower_bound[0].item()
+            cur_neuron.concrete_upper = upper_bound[0].item()
+            #discard the concrete value from the previous deeppolys
+            cur_neuron.concrete_highest_lower = None
+            cur_neuron.concrete_lowest_upper = None
+            if (cur_neuron.concrete_highest_lower == None) or (
+                    cur_neuron.concrete_highest_lower < cur_neuron.concrete_lower):
+                cur_neuron.concrete_highest_lower = cur_neuron.concrete_lower
+            if (cur_neuron.concrete_lowest_upper == None) or (
+                    cur_neuron.concrete_lowest_upper > cur_neuron.concrete_upper):
+                cur_neuron.concrete_lowest_upper = cur_neuron.concrete_upper
+                
 
         def pre(cur_neuron, i):
+            # return pre_gpu(cur_neuron, i)
             if i == 0:
                 cur_neuron.concrete_algebra_lower = deepcopy(cur_neuron.algebra_lower)
                 cur_neuron.concrete_algebra_upper = deepcopy(cur_neuron.algebra_upper)
@@ -192,6 +391,7 @@ class DP_DNN_network(object):
                         tmp_upper += upper_bound[p] * self.layers[k].neurons[p].algebra_upper
                     else:
                         tmp_upper += upper_bound[p] * self.layers[k].neurons[p].algebra_lower
+                # print("tmp_upper =", tmp_upper)
                 tmp_lower[-1] += lower_bound[-1]
                 tmp_upper[-1] += upper_bound[-1]
                 lower_bound = deepcopy(tmp_lower)
@@ -212,9 +412,21 @@ class DP_DNN_network(object):
             if (cur_neuron.concrete_lowest_upper == None) or (
                     cur_neuron.concrete_lowest_upper > cur_neuron.concrete_upper):
                 cur_neuron.concrete_lowest_upper = cur_neuron.concrete_upper
+            if cur_neuron.historical_concrete_lowest_lower == None:
+                cur_neuron.historical_concrete_lowest_lower = cur_neuron.concrete_lower
+            if cur_neuron.historical_concrete_highest_upper == None:
+                cur_neuron.historical_concrete_highest_upper = cur_neuron.concrete_upper
+            cur_neuron.historical_concrete_lowest_lower = min(cur_neuron.historical_concrete_lowest_lower, 
+                                                            cur_neuron.concrete_lower)
+            cur_neuron.historical_concrete_highest_upper = max(cur_neuron.historical_concrete_highest_upper,
+                                                            cur_neuron.concrete_upper)
 
         self.abs_mode_changed = 0
         self.abs_mode_changed_min = 0
+        if VERBOSE:
+            i = 0
+            for j in range(len(self.layers[i].neurons)):
+                self.layers[i].neurons[j].print_detail(i - 1, j)
         for i in range(len(self.layers) - 1):
             gp_layer_count = 0
             pre_layer = self.layers[i]
@@ -232,23 +444,33 @@ class DP_DNN_network(object):
                     # test_bias = cur_neuron.bias
                     # print("Weight's DType: ", test_weight.dtype)
                     # print("test_bias's DType: ", test_weight.dtype)
-                    cur_neuron.algebra_lower = np.append(cur_neuron.weight, [cur_neuron.bias])
-                    cur_neuron.algebra_upper = np.append(cur_neuron.weight, [cur_neuron.bias])
+                    cur_neuron.algebra_lower = np.append(cur_neuron.weight, [0])
+                    cur_neuron.algebra_upper = np.append(cur_neuron.weight, [0])
                     if (i + 1, j) in self.weight_variables:
                         for (weightIndex, rangeMin, rangeMax) in self.weight_variables[(i + 1, j)]:
-                            cur_neuron.algebra_lower[weightIndex] = rangeMin
-                            cur_neuron.algebra_upper[weightIndex] = rangeMax
-                    
+                            (k1, b1), (k2, b2) = weighted_input_relax(
+                                rangeMin, rangeMax, pre_neuron_list[weightIndex].concrete_lower, pre_neuron_list[weightIndex].concrete_upper
+                            )
+                            cur_neuron.algebra_lower[weightIndex] = k1
+                            cur_neuron.algebra_upper[weightIndex] = k2
+                            cur_neuron.algebra_lower[-1] += b1
+                            cur_neuron.algebra_upper[-1] += b2                            
+                            
                     if (i + 1, j) in self.bias_variables:
                         rangeMin, rangeMax = self.bias_variables[(i + 1, j)]
                         cur_neuron.algebra_lower[-1] += rangeMin
                         cur_neuron.algebra_upper[-1] += rangeMax
+                    else:
+                        cur_neuron.algebra_lower[-1] += cur_neuron.bias
+                        cur_neuron.algebra_upper[-1] += cur_neuron.bias
 
                     pre(cur_neuron, i)
 
                     cur_neuron.concrete_lower_noClip = cur_neuron.concrete_lower
                     cur_neuron.concrete_upper_noClip = cur_neuron.concrete_upper
                     cur_neuron.actMode = 0 # affine mode
+                    if VERBOSE:
+                        cur_neuron.print_detail(i, j)
                 gp_layer_count = gp_layer_count + 1
 
             elif cur_layer.layer_type == DP_DNN_layer.RELU_LAYER:
@@ -291,7 +513,7 @@ class DP_DNN_network(object):
                         cur_neuron.concrete_lowest_upper = 0
                         # cur_neuron.certain_flag = 2
                         cur_neuron.actMode = 2
-                    elif pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper <= 0:
+                    elif pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper < 0:
                         if (cur_neuron.prev_abs_mode != None) and (cur_neuron.prev_abs_mode != 0):
                             self.abs_mode_changed += 1
                         cur_neuron.prev_abs_mode = 0
@@ -332,15 +554,48 @@ class DP_DNN_network(object):
 
                         pre(cur_neuron, i)
                         cur_neuron.actMode = 4
-                    # print("Layer, neuron: ", i + 1, j)
-                    # print("Algebra Lower: ", cur_neuron.algebra_lower)
-                    # print("Algebra Upper: ", cur_neuron.algebra_upper)
-                    # print("Concrete Lower: ", cur_neuron.concrete_lower)
-                    # print("Concrete Upper: ", cur_neuron.concrete_upper)
-                    # print("Act Mode: ", ["pre_neuron.concrete_highest_lower >= 0", 
-                    #                       "pre_neuron.concrete_lowest_upper < 0",
-                    #                         "pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper <= 0",
-                    #                         "pre_neuron.concrete_highest_lower + pre_neuron.concrete_lowest_upper > 0"][cur_neuron.actMode - 1]) 
+                    if VERBOSE:
+                        cur_neuron.print_detail(i, _j)
+            elif cur_layer.layer_type in [DP_DNN_layer.SIGMOID_LAYER, DP_DNN_layer.TANH_LAYER]:
+                actvFac = []
+                actvCst = []
+                for _j in range(cur_layer.size):
+                    cur_neuron : DP_DNN_neuron = cur_neuron_list[_j]
+                    if cur_neuron.variable_weight:
+                        pre_neuron = pre_neuron_list[cur_neuron.variable_weight_id]
+                        j = cur_neuron.variable_weight_id
+                        rangeMin, rangeMax = cur_neuron.variable_weight_min, cur_neuron.variable_weight_max
+                    else:
+                        pre_neuron = pre_neuron_list[_j]
+                        j = _j
+                        rangeMin, rangeMax = 1, 1
+                    
+                    cur_neuron.algebra_lower = np.zeros(pre_layer.size + 1)
+                    cur_neuron.algebra_upper = np.zeros(pre_layer.size + 1)
+                    
+                    if cur_layer.layer_type == DP_DNN_layer.SIGMOID_LAYER:
+                        (k1, b1), (k2, b2) = sigmoid_abstract(
+                            wl = rangeMin, wu = rangeMax, xl=pre_neuron.concrete_lower, xu=pre_neuron.concrete_upper
+                        )
+                    elif cur_layer.layer_type == DP_DNN_layer.TANH_LAYER:
+                        (k1, b1), (k2, b2) = tanh_abstract(
+                            wl = rangeMin, wu = rangeMax, xl=pre_neuron.concrete_lower, xu=pre_neuron.concrete_upper
+                        )
+
+                    cur_neuron.algebra_lower[j] = k1
+                    cur_neuron.algebra_upper[j] = k2
+                    cur_neuron.algebra_lower[-1] = b1
+                    cur_neuron.algebra_upper[-1] = b2
+                    
+                    actvFac.append((k1, k2))
+                    actvCst.append((b1, b2))
+                    
+                    pre(cur_neuron, i)
+                    if VERBOSE:
+                        cur_neuron.print_detail(i, _j)
+                # print(f"actvFac: {actvFac}")
+                # print(f"actvCst: {actvCst}")
+
                     
     def add_difference_layer(self,outputLabel):
         """
@@ -477,6 +732,23 @@ class DP_DNN_network(object):
         self.inputSize = layersize[0]
         self.outputSize = layersize[-1]
         self.numLayers = len(layersize) - 1
+    
+    def change_activation(self, activation:str):
+        layer_code = None
+        if activation == "relu":
+            layer_code = DP_DNN_layer.RELU_LAYER
+        elif activation == "sigmoid":
+            layer_code = DP_DNN_layer.SIGMOID_LAYER
+        elif activation == "tanh":
+            layer_code = DP_DNN_layer.TANH_LAYER
+
+        for layer in self.layers:
+            layer :DP_DNN_layer = layer
+            if layer.layer_type in [DP_DNN_layer.RELU_LAYER, DP_DNN_layer.SIGMOID_LAYER, DP_DNN_layer.TANH_LAYER]:
+                layer.layer_type = layer_code 
+
+    def return_output(self):
+        return [(neuron.concrete_lower, neuron.concrete_upper) for neuron in self.layers[-1].neurons]
 
     def add_weight_range(self, affineLayerIndex, neuronIndex, weightIndex, rangeMin, rangeMax):
             """
@@ -516,7 +788,7 @@ class DP_DNN_network(object):
                     )
                 )
     
-            if thePreviousLayer.layer_type != DP_DNN_layer.RELU_LAYER:
+            if thePreviousLayer.layer_type not in [DP_DNN_layer.RELU_LAYER, DP_DNN_layer.SIGMOID_LAYER, DP_DNN_layer.TANH_LAYER]:
                 if thePreviousLayer.layer_type == DP_DNN_layer.INPUT_LAYER:
                     if (trueLayerIndex,neuronIndex) in self.weight_variables:
                         self.weight_variables[(trueLayerIndex,neuronIndex)].append((weightIndex,rangeMin,rangeMax))
@@ -575,7 +847,30 @@ class DP_DNN_network(object):
         if (trueLayerIndex,neuronIndex) in self.bias_variables:
             raise ValueError("The bias of the neuron has been set before")
         self.bias_variables[(trueLayerIndex,neuronIndex)] = (rangeMin,rangeMax)
-        print("self.bias_variables", self.bias_variables)
+        # print("self.bias_variables", self.bias_variables)
+        
+    def get_intermediate_bounds(self):
+        res = []
+        affinelayerIndex = 1
+        for idx, layer in enumerate(self.layers):
+            if layer.layer_type == DP_DNN_layer.AFFINE_LAYER and layer.auxLayer == False:
+                    thisLayerConcrete = [ (neuron.historical_concrete_lowest_lower, neuron.historical_concrete_highest_upper) \
+                                           for neuron in layer.neurons]
+                    assert len(thisLayerConcrete) <= self.layerSizes[affinelayerIndex], \
+                            f"{len(thisLayerConcrete)} > {self.layerSizes[affinelayerIndex]}"
+                    res.append(thisLayerConcrete[:self.layerSizes[affinelayerIndex]])
+                    affinelayerIndex += 1
+        return res
+    
+    def get_post_activation_bounds(self):
+        res = []
+        for idx, layer in enumerate(self.layers):
+            if layer.layer_type in [DP_DNN_layer.RELU_LAYER, DP_DNN_layer.SIGMOID_LAYER, DP_DNN_layer.TANH_LAYER]:
+                thisLayerConcrete = [ (neuron.concrete_lower, neuron.concrete_upper) for neuron in layer.neurons]
+                res.append(thisLayerConcrete)
+        return res
+
+
 
 class DP_QNN_network(DP_DNN_network): #only quantifying the weight and the bias. relu is not. signed int with scaling factors(\Delta w)
     def __init__(self, bit_all, DeltaWs, ifSignedOutput):
@@ -591,7 +886,7 @@ class DP_QNN_network(DP_DNN_network): #only quantifying the weight and the bias.
                 assert cnt < len(self.DeltaWs)
                 layer.DeltaW = self.DeltaWs[cnt]
                 cnt = cnt + 1
-        assert cnt == len(self.DeltaWs)
+        assert cnt == len(self.DeltaWs), f"{cnt} != {len(self.DeltaWs)}"
     
     def load_dnn(self, quantized_model):
         super().load_dnn(quantized_model)
@@ -602,7 +897,7 @@ class DP_QNN_network(DP_DNN_network): #only quantifying the weight and the bias.
                 assert cnt < len(self.DeltaWs)
                 layer.DeltaW = self.DeltaWs[cnt]
                 cnt += 1
-        assert cnt == len(self.DeltaWs)
+        assert cnt == len(self.DeltaWs), f"{cnt} != {len(self.DeltaWs)}"
 
     def dump(self) -> dict:
         jdict = {}
